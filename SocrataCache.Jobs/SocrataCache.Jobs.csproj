@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\SocrataCache.Config\SocrataCache.Config.csproj"/>
+        <ProjectReference Include="..\SocrataCache.Managers\SocrataCache.Managers.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Quartz" Version="3.13.1" />
+    </ItemGroup>
+
+</Project>

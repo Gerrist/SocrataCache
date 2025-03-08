@@ -1,0 +1,31 @@
+{
+  "baseUrl": "https://opendata.rdw.nl",
+  "retentionSize": 10,
+  "retentionDays": 1,
+  "resources": [
+    {
+      "resourceId": "rdw_vehicle_base_registration",
+      "socrataId": "m9d7-ebf2",
+      "excludedColumns": [
+        "api_gekentekende_voertuigen_assen",
+        "api_gekentekende_voertuigen_brandstof",
+        "api_gekentekende_voertuigen_carrosserie_specifiek",
+        "api_gekentekende_voertuigen_voertuigklasse",
+        "registratie_datum_goedkeuring_afschrijvingsmoment_bpm",
+        "vervaldatum_apk",
+        "datum_tenaamstelling",
+        "datum_eerste_toelating",
+        "datum_eerste_tenaamstelling_in_nederland",
+        "vervaldatum_tachograaf"
+      ]
+    },
+    {
+      "resourceId": "rdw_type_approval_base",
+      "socrataId": "byxc-wwua"
+    },
+    {
+      "resourceId": "rdw_type_approval_brand",
+      "socrataId": "kyri-nuah"
+    }
+  ]
+}
