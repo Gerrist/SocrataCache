@@ -13,4 +13,73 @@ SocrataCache makes sure files are downloaded automatically which enables me to r
 
 This piece of software is far from perfect, since it is my first serious greenfield project in .NET. Please feel invited to provide feedback and/or suggestions as you please.
 
+## Configuration
 
+You need to configure SocrataCache to make sure it automatically downloads your files. Please use the example configuration file and variables below and alter it as you need.
+
+### Configuration file
+
+- `baseURL`: The base url/endpoint of the Socrata service ([more about finding the base/endpoint url](https://dev.socrata.com/consumers/getting-started.html)).
+- `retentionSize`: The oldest downloads will be deleted to free up space once the total download directory size in Gigabytes exceeds this value
+- `retentionDays`: The oldest downloads will be deleted to free up space once the age of files is older than this defined value
+
+### Environment variables
+
+- `SOCRATACACHE_CONFIG_FILE` Path to the JSON configuration file
+- `SOCRATACACHE_DB_FILE_PATH` Path where the SQLite database file is stored
+- `SOCRATACACHE_DOWNLOADS_ROOT_PATH` Path where downloaded files are stored
+
+Within `resources`:
+
+- `resourceId` An user defined ID for identifying a resource
+- `socrataId` The Resource ID as defined in Socrata 
+- `excludedColumns` Put all columns you don't want to download in this string array
+
+## Example configuration 
+
+This is an example configuration which defines the Socrata service base URL, three resources to download (one with custom column definition) and data retention settings.
+
+### JSON Configuration
+
+```json
+{
+  "baseUrl": "https://opendata.rdw.nl",
+  "retentionSize": 10,
+  "retentionDays": 1,
+  "resources": [
+    {
+      "resourceId": "rdw_vehicle_base_registration",
+      "socrataId": "m9d7-ebf2",
+      "excludedColumns": [
+        "api_gekentekende_voertuigen_assen",
+        "api_gekentekende_voertuigen_brandstof",
+        "api_gekentekende_voertuigen_carrosserie_specifiek",
+        "api_gekentekende_voertuigen_voertuigklasse",
+        "registratie_datum_goedkeuring_afschrijvingsmoment_bpm",
+        "vervaldatum_apk",
+        "datum_tenaamstelling",
+        "datum_eerste_toelating",
+        "datum_eerste_tenaamstelling_in_nederland",
+        "vervaldatum_tachograaf"
+      ]
+    },
+    {
+      "resourceId": "rdw_type_approval_base",
+      "socrataId": "byxc-wwua"
+    },
+    {
+      "resourceId": "rdw_type_approval_brand",
+      "socrataId": "kyri-nuah"
+    }
+  ]
+}
+```
+
+# Deploying SocrataCache
+
+I recommend running this service in a container. I've included a `compose.yaml` in this repository which functions as an example on how to quickly run SocrataCache. You can run this by using the following command: `docker compose up --build`.
+
+# API
+
+### `/api/datasets`
+This endpoint states all datasets and their statuses. 
