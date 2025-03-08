@@ -87,7 +87,7 @@ public class DownloadPendingDatasetsJob : IJob
 
                 if (File.Exists(filePathExistingCompressed)) File.Delete(filePathExistingCompressed);
 
-                File.Move(filePathDownloadCompressed, filePathExistingCompressed);
+                File.Copy(filePathDownloadCompressed, filePathExistingCompressed);
 
                 await _datasetManager.UpdateDatasetStatus(pendingDataset.DatasetId, DatasetStatus.Downloaded);
 
