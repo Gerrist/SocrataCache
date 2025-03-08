@@ -17,7 +17,6 @@ public class FreshDatasetLookupJob : IJob
         ILogger<FreshDatasetLookupJob> logger)
     {
         _config = config;
-        // _resourceManager = resourceManager;
         _datasetManager = datasetManager;
         _logger = logger;
     }
