@@ -23,6 +23,8 @@ You need to configure SocrataCache to make sure it automatically downloads your 
 - `retentionSize`: The oldest downloads will be deleted to free up space once the total download directory size in Gigabytes exceeds this value
 - `retentionDays`: The oldest downloads will be deleted to free up space once the age of files is older than this defined value
 
+Note: Retention cleanup is done on job-basis every few minutes. Treat this job as base-effort, as it may occur that the total volume of files exceeds the threshold. I'm working on a better solution.
+
 ### Environment variables
 
 - `SOCRATACACHE_CONFIG_FILE` Path to the JSON configuration file

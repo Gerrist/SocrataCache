@@ -1,4 +1,3 @@
-
 using Microsoft.EntityFrameworkCore;
 using Quartz;
 using Quartz.AspNetCore;
@@ -27,6 +26,9 @@ public class Program
             var downloadPendingDatasetsJobKey = new JobKey("DownloadPendingDatasetsJob");
             q.AddJob<DownloadPendingDatasetsJob>(opts => opts.WithIdentity(downloadPendingDatasetsJobKey));
 
+            var retentionCleanupJobKey = new JobKey("RetentionCleanupJob");
+            q.AddJob<RetentionCleanupJob>(opts => opts.WithIdentity(retentionCleanupJobKey));
+
             q.AddTrigger(opts => opts
                 .ForJob(freshDatasetLookupJobKey)
                 .WithIdentity("FreshDatasetLookupRecurringTrigger")
@@ -46,12 +48,19 @@ public class Program
                 .ForJob(downloadPendingDatasetsJobKey)
                 .WithIdentity("DownloadPendingDatasetsImmediateTrigger")
                 .StartAt(DateTime.Now.AddSeconds(20)));
+
+            q.AddTrigger(opts => opts
+                .ForJob(retentionCleanupJobKey)
+                .WithIdentity("RetentionCleanupJobRecurringTrigger")
+                .WithSimpleSchedule(x => x.WithIntervalInMinutes(1).RepeatForever()));
+
+            q.AddTrigger(opts => opts
+                .ForJob(retentionCleanupJobKey)
+                .WithIdentity("RetentionCleanupJobImmediateTrigger")
+                .StartAt(DateTime.Now.AddSeconds(20)));
         });
 
-        builder.Services.AddQuartzServer(q =>
-        {
-            q.WaitForJobsToComplete = true;
-        });
+        builder.Services.AddQuartzServer(q => { q.WaitForJobsToComplete = true; });
 
         builder.Services.AddOpenApi();
 
@@ -65,26 +74,23 @@ public class Program
             Console.WriteLine("Migrations applied");
         }
 
-        if (app.Environment.IsDevelopment())
-        {
-            app.MapOpenApi();
-        }
-        
-        app.MapGet("/api/datasets", async (HttpContext httpContext, Managers.DatasetManager datasetManager) =>
-        {
-            var datasets = await datasetManager.GetDatasets();
+        if (app.Environment.IsDevelopment()) app.MapOpenApi();
 
-            return datasets.Select(dataset => new DatasetDto
+        app.MapGet("/api/datasets", async (HttpContext httpContext, Managers.DatasetManager datasetManager) =>
             {
-                DatasetId = dataset.DatasetId,
-                ResourceId = dataset.ResourceId,
-                Status = dataset.Status.ToString().ToLower(),
-                ReferenceDate = dataset.ReferenceDate,
-                CreatedAt = dataset.CreatedAt,
-                UpdatedAt = dataset.UpdatedAt
-            });
-        })
-        .WithName("GetDatasets");
+                var datasets = await datasetManager.GetDatasets();
+
+                return datasets.Select(dataset => new DatasetDto
+                {
+                    DatasetId = dataset.DatasetId,
+                    ResourceId = dataset.ResourceId,
+                    Status = dataset.Status.ToString().ToLower(),
+                    ReferenceDate = dataset.ReferenceDate,
+                    CreatedAt = dataset.CreatedAt,
+                    UpdatedAt = dataset.UpdatedAt
+                });
+            })
+            .WithName("GetDatasets");
 
         Console.WriteLine("Starting application");
 

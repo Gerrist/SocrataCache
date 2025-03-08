@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Logging;
-
 using Quartz;
 using SocrataCache.Managers.Models;
 
@@ -12,7 +11,7 @@ public class FreshDatasetLookupJob : IJob
     private readonly ILogger<FreshDatasetLookupJob> _logger;
 
     public FreshDatasetLookupJob(
-        Config.Config config, 
+        Config.Config config,
         Managers.DatasetManager datasetManager,
         ILogger<FreshDatasetLookupJob> logger)
     {
@@ -28,7 +27,8 @@ public class FreshDatasetLookupJob : IJob
         foreach (var resource in _config.GetResources())
         {
             var lastUpdated = await resource.GetLastUpdated(_config.GetBaseUri());
-            _logger.LogInformation($"Resource {resource.ResourceId} ({resource.SocrataId}) was last updated on {lastUpdated:yyyy-MM-dd HH:mm:ss}");
+            _logger.LogInformation(
+                $"Resource {resource.ResourceId} ({resource.SocrataId}) was last updated on {lastUpdated:yyyy-MM-dd HH:mm:ss}");
 
             var isDatasetKnown = await _datasetManager.IsFreshDatasetKnown(lastUpdated, resource.ResourceId);
             if (isDatasetKnown)
@@ -39,10 +39,9 @@ public class FreshDatasetLookupJob : IJob
 
             var obsoleteDatasets =
                 await _datasetManager.GetDatasetsByStatus(DatasetStatus.Pending, resource.ResourceId);
+
             foreach (var obsoleteDataset in obsoleteDatasets)
-            {
                 await _datasetManager.UpdateDatasetStatus(obsoleteDataset.DatasetId, DatasetStatus.Obsolete);
-            }
 
             _logger.LogInformation($"Marked {obsoleteDatasets.Length} dataset(s) as obsolete.");
 
