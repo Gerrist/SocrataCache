@@ -72,7 +72,17 @@ public class Program
         
         app.MapGet("/api/datasets", async (HttpContext httpContext, Managers.DatasetManager datasetManager) =>
         {
-            return await datasetManager.GetDatasets();
+            var datasets = await datasetManager.GetDatasets();
+
+            return datasets.Select(dataset => new DatasetDto
+            {
+                DatasetId = dataset.DatasetId,
+                ResourceId = dataset.ResourceId,
+                Status = dataset.Status.ToString().ToLower(),
+                ReferenceDate = dataset.ReferenceDate,
+                CreatedAt = dataset.CreatedAt,
+                UpdatedAt = dataset.UpdatedAt
+            });
         })
         .WithName("GetDatasets");
 
