@@ -15,3 +15,11 @@
       - /mnt/volume-nbg1-1/socratacachedatasets:/app/scdatasets
     ports:
       - 8080:8080
+  gossa:
+    image: pldubouilh/gossa
+    volumes:
+      - /mnt/volume-nbg1-1/socratacachedatasets:/shared
+    ports:
+      - 8081:8001
+    environment:
+      - READONLY=true
