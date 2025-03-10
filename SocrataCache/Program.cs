@@ -21,13 +21,16 @@ public class Program
         builder.Services.AddQuartz(q =>
         {
             var freshDatasetLookupJobKey = new JobKey("FreshDatasetLookupJob");
-            q.AddJob<FreshDatasetLookupJob>(opts => opts.WithIdentity(freshDatasetLookupJobKey));
+            q.AddJob<FreshDatasetLookupJob>(opts =>
+                opts.WithIdentity(freshDatasetLookupJobKey).DisallowConcurrentExecution());
 
             var downloadPendingDatasetsJobKey = new JobKey("DownloadPendingDatasetsJob");
-            q.AddJob<DownloadPendingDatasetsJob>(opts => opts.WithIdentity(downloadPendingDatasetsJobKey));
+            q.AddJob<DownloadPendingDatasetsJob>(opts =>
+                opts.WithIdentity(downloadPendingDatasetsJobKey).DisallowConcurrentExecution());
 
             var retentionCleanupJobKey = new JobKey("RetentionCleanupJob");
-            q.AddJob<RetentionCleanupJob>(opts => opts.WithIdentity(retentionCleanupJobKey));
+            q.AddJob<RetentionCleanupJob>(opts =>
+                opts.WithIdentity(retentionCleanupJobKey).DisallowConcurrentExecution());
 
             q.AddTrigger(opts => opts
                 .ForJob(freshDatasetLookupJobKey)
