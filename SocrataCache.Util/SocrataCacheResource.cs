@@ -13,7 +13,7 @@ public class SocrataCacheResource
     public string ResourceType { get; set; } = "csv";
     public string SocrataId { get; set; } = string.Empty;
     public string[]? ExcludedColumns { get; set; } = [];
-    
+
     public string GetUpdatedAtUrl(string baseUri)
     {
         return
@@ -34,7 +34,12 @@ public class SocrataCacheResource
     {
         var checkResponse = await HttpHelper.GetJsonAsync<CheckResponseDto[]>(GetUpdatedAtUrl(baseUri));
 
-        var checkEntry = checkResponse?[0];
+        if (checkResponse == null || checkResponse.Length == 0)
+        {
+            throw new InvalidOperationException($"No update information found for dataset {ResourceId} ({SocrataId}). The API returned an empty response.");
+        }
+
+        var checkEntry = checkResponse[0];
 
         if (checkEntry == null)
             throw new InvalidOperationException($"Check response is invalid for dataset {ResourceId} ({SocrataId})");
@@ -49,9 +54,9 @@ public class SocrataCacheResource
         var columnsResponse = await HttpHelper.GetText(GetColumnsUrl(baseUri));
 
         var columns = columnsResponse.Split(",").Select(c => c.Replace("\"", ""));
-        
+
         var columnsWithoutExcluded = columns.Where(column => !(ExcludedColumns ?? []).Contains(column));
-        
+
         return columnsWithoutExcluded.ToArray();
     }
 }
