@@ -5,13 +5,13 @@ name: .NET
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "**" ]
   pull_request:
     branches: [ "master" ]
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: ${{ github.repository }}${{ github.ref != 'refs/heads/master' && format('-{0}', github.ref_name) || '' }}
 
 jobs:
   build:
