@@ -171,9 +171,9 @@ public class RetentionCleanupJob : IJob
                 combinedFileSizeMb = +Convert.ToInt16(Math.Ceiling((double)fileInfo.Length / 1024 / 1024));
                 deletedFilesCount++;
 
-                File.Delete(filePathDownload);
+                File.Delete(filePathDownloadCompressed);
 
-                _logger.LogInformation("Deleted file {FileName}", filePathDownloadCompressed);
+                _logger.LogInformation("Deleted file {FileName}", fileNameDownloadCompressed);
             }
             else
             {
