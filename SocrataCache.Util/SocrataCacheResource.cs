@@ -22,7 +22,7 @@ public class SocrataCacheResource
 
     public string GetColumnsUrl(string baseUri)
     {
-        return $"{baseUri}/resource/{SocrataId}.{Type}?$select=*&$limit=0";
+        return $"{baseUri}/resource/{SocrataId}.csv?$select=*&$limit=0";
     }
 
     public string GetDownloadUrl(string baseUri, string[] columns)
