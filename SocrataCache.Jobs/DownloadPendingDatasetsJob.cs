@@ -46,11 +46,11 @@ public class DownloadPendingDatasetsJob : IJob
 
                 if (!Directory.Exists(datasetsDirectory)) Directory.CreateDirectory(datasetsDirectory);
 
-                var fileNameDownload = $"{resource.ResourceId}-{pendingDataset.DatasetId}.csv";
-                var fileNameExisting = $"{resource.ResourceId}.csv";
+                var fileNameDownload = $"{resource.ResourceId}-{pendingDataset.DatasetId}.{resource.Type}";
+                var fileNameExisting = $"{resource.ResourceId}.{resource.Type}";
 
-                var fileNameDownloadCompressed = $"{resource.ResourceId}-{pendingDataset.DatasetId}.csv.gz";
-                var fileNameExistingCompressed = $"{resource.ResourceId}.csv.gz";
+                var fileNameDownloadCompressed = $"{resource.ResourceId}-{pendingDataset.DatasetId}.{resource.Type}.gz";
+                var fileNameExistingCompressed = $"{resource.ResourceId}.{resource.Type}.gz";
 
                 var filePathDownload = $"{datasetsDirectory}/{fileNameDownload}";
                 var filePathExisting = $"{datasetsDirectory}/{fileNameExisting}";

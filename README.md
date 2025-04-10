@@ -36,6 +36,7 @@ Within `resources`:
 - `resourceId` An user defined ID for identifying a resource
 - `socrataId` The Resource ID as defined in Socrata 
 - `excludedColumns` Put all columns you don't want to download in this string array
+- `type` The file type to download. Must be one of: csv, json, xml (default: csv)
 
 ## Example configuration 
 
@@ -52,6 +53,7 @@ This is an example configuration which defines the Socrata service base URL, thr
     {
       "resourceId": "rdw_vehicle_base_registration",
       "socrataId": "m9d7-ebf2",
+      "type": "json",
       "excludedColumns": [
         "api_gekentekende_voertuigen_assen",
         "api_gekentekende_voertuigen_brandstof",
@@ -67,11 +69,13 @@ This is an example configuration which defines the Socrata service base URL, thr
     },
     {
       "resourceId": "rdw_type_approval_base",
-      "socrataId": "byxc-wwua"
+      "socrataId": "byxc-wwua",
+      "type": "csv"
     },
     {
       "resourceId": "rdw_type_approval_brand",
-      "socrataId": "kyri-nuah"
+      "socrataId": "kyri-nuah",
+      "type": "xml"
     }
   ]
 }
