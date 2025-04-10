@@ -15,7 +15,12 @@ public class JobFactory : IJobFactory
 
     public IJob NewJob(TriggerFiredBundle bundle, IScheduler scheduler)
     {
-        return _serviceProvider.GetRequiredService(bundle.JobDetail.JobType) as IJob;
+        var job = _serviceProvider.GetRequiredService(bundle.JobDetail.JobType) as IJob;
+        if (job == null)
+        {
+            throw new InvalidOperationException($"Failed to create job of type {bundle.JobDetail.JobType}");
+        }
+        return job;
     }
 
     public void ReturnJob(IJob job) { }
