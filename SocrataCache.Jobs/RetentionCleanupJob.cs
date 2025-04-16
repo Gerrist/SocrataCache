@@ -65,8 +65,8 @@ public class RetentionCleanupJob : IJob
                 "Deleting dataset {ResouceID}-{DatasetId} (CreatedAt is {CreatedAt} = {DaysDiff} days old)",
                 dataset.ResourceId, dataset.DatasetId, dataset.CreatedAt, daysOld);
 
-            var fileNameDownload = $"{dataset.ResourceId}-{dataset.DatasetId}.csv";
-            var fileNameDownloadCompressed = $"{dataset.ResourceId}-{dataset.DatasetId}.csv.gz";
+            var fileNameDownload = $"{dataset.ResourceId}-{dataset.DatasetId}.{dataset.Type}";
+            var fileNameDownloadCompressed = $"{dataset.ResourceId}-{dataset.DatasetId}.{dataset.Type}.gz";
 
             var filePathDownload = $"{datasetsDirectory}/{fileNameDownload}";
             var filePathDownloadCompressed = $"{datasetsDirectory}/{fileNameDownloadCompressed}";
@@ -134,8 +134,8 @@ public class RetentionCleanupJob : IJob
 
             var combinedFileSizeMb = 0;
 
-            var fileNameDownload = $"{dataset.ResourceId}-{dataset.DatasetId}.csv";
-            var fileNameDownloadCompressed = $"{dataset.ResourceId}-{dataset.DatasetId}.csv.gz";
+            var fileNameDownload = $"{dataset.ResourceId}-{dataset.DatasetId}.{dataset.Type}";
+            var fileNameDownloadCompressed = $"{dataset.ResourceId}-{dataset.DatasetId}.{dataset.Type}.gz";
 
             var filePathDownload = $"{datasetsDirectory}/{fileNameDownload}";
             var filePathDownloadCompressed = $"{datasetsDirectory}/{fileNameDownloadCompressed}";
