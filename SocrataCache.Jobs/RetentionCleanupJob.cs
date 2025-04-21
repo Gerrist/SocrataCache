@@ -59,6 +59,24 @@ public class RetentionCleanupJob : IJob
 
         foreach (var dataset in overThresholdDatasets)
         {
+            var resource = _config.GetResources().FirstOrDefault(r => r.ResourceId == dataset.ResourceId);
+            if (resource?.RetainLastFile == true)
+            {
+                // Check if this is the last file for this resource
+                var otherDatasetsForResource = knownDatasets
+                    .Where(d => d.ResourceId == dataset.ResourceId && 
+                               d.Status == DatasetStatus.Downloaded && 
+                               d.DatasetId != dataset.DatasetId);
+                
+                if (!otherDatasetsForResource.Any())
+                {
+                    _logger.LogDebug(
+                        "Skipping deletion of dataset {ResourceID}-{DatasetId} as it's the last file for resource {ResourceID} and retainLastFile is true",
+                        dataset.ResourceId, dataset.DatasetId);
+                    continue;
+                }
+            }
+
             var daysOld = (DateTime.Now - dataset.CreatedAt).TotalDays;
 
             _logger.LogDebug(
@@ -128,6 +146,24 @@ public class RetentionCleanupJob : IJob
                 _logger.LogInformation("Dataset volume not exceeding retention size threshold anymore: {Remaining}",
                     overThresholdSize);
                 break;
+            }
+
+            var resource = _config.GetResources().FirstOrDefault(r => r.ResourceId == dataset.ResourceId);
+            if (resource?.RetainLastFile == true)
+            {
+                // Check if this is the last file for this resource
+                var otherDatasetsForResource = knownDatasets
+                    .Where(d => d.ResourceId == dataset.ResourceId && 
+                               d.Status == DatasetStatus.Downloaded && 
+                               d.DatasetId != dataset.DatasetId);
+                
+                if (!otherDatasetsForResource.Any())
+                {
+                    _logger.LogDebug(
+                        "Skipping deletion of dataset {ResourceID}-{DatasetId} as it's the last file for resource {ResourceID} and retainLastFile is true",
+                        dataset.ResourceId, dataset.DatasetId);
+                    continue;
+                }
             }
 
             _logger.LogDebug("Deleting dataset because of overThresholdSize: {ThresholdSize}", overThresholdSize);
