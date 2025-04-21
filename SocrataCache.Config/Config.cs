@@ -33,6 +33,27 @@ public class Config
         {
             PropertyNameCaseInsensitive = true
         }) ?? throw new JsonException("Failed to deserialize config file.");
+
+        // Validate resource IDs are unique
+        var resourceIds = _config.Resources.Select(r => r.ResourceId).ToList();
+        var duplicateResourceIds = resourceIds.GroupBy(x => x)
+            .Where(g => g.Count() > 1)
+            .Select(g => g.Key)
+            .ToList();
+
+        if (duplicateResourceIds.Any())
+        {
+            throw new InvalidOperationException($"Duplicate resource IDs found: {string.Join(", ", duplicateResourceIds)}");
+        }
+
+        // Validate file types
+        foreach (var resource in _config.Resources)
+        {
+            if (!new[] { "csv", "json", "xml" }.Contains(resource.Type.ToLower()))
+            {
+                throw new InvalidOperationException($"Invalid file type '{resource.Type}' for resource {resource.ResourceId}. Must be one of: csv, json, xml");
+            }
+        }
     }
 
     public SocrataCacheConfig GetConfig() => _config ?? throw new NullReferenceException("No config defined");

@@ -16,7 +16,7 @@ public enum DatasetStatus
 [Table("Dataset")]
 public class DatasetModel
 {
-    [Required] [Key] [Column("DatasetId")] public string DatasetId { get; set; }
+    [Required] [Key] [Column("DatasetId")] public string DatasetId { get; set; } = null!;
 
     [Required] [Column("ResourceId")] public string ResourceId { get; set; } = null!;
 
@@ -27,4 +27,6 @@ public class DatasetModel
     [Required] [Column("CreatedAt")] public DateTime CreatedAt { get; set; }
 
     [Required] [Column("UpdatedAt")] public DateTime UpdatedAt { get; set; }
+
+    [Required] [Column("Type")] public string Type { get; set; } = "csv";
 }

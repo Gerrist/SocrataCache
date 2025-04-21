@@ -34,6 +34,9 @@ public class DownloadPendingDatasetsJob : IJob
                 continue;
             }
 
+            var baseUri = _config.GetBaseUri();
+            var downloadUrl = resource.GetDownloadUrl(baseUri, await resource.GetColumns(baseUri));
+
             try
             {
                 _logger.LogInformation($"Downloading dataset for {resource.ResourceId}");
@@ -46,11 +49,11 @@ public class DownloadPendingDatasetsJob : IJob
 
                 if (!Directory.Exists(datasetsDirectory)) Directory.CreateDirectory(datasetsDirectory);
 
-                var fileNameDownload = $"{resource.ResourceId}-{pendingDataset.DatasetId}.csv";
-                var fileNameExisting = $"{resource.ResourceId}.csv";
+                var fileNameDownload = $"{resource.ResourceId}-{pendingDataset.DatasetId}.{resource.Type}";
+                var fileNameExisting = $"{resource.ResourceId}.{resource.Type}";
 
-                var fileNameDownloadCompressed = $"{resource.ResourceId}-{pendingDataset.DatasetId}.csv.gz";
-                var fileNameExistingCompressed = $"{resource.ResourceId}.csv.gz";
+                var fileNameDownloadCompressed = $"{resource.ResourceId}-{pendingDataset.DatasetId}.{resource.Type}.gz";
+                var fileNameExistingCompressed = $"{resource.ResourceId}.{resource.Type}.gz";
 
                 var filePathDownload = $"{datasetsDirectory}/{fileNameDownload}";
                 var filePathExisting = $"{datasetsDirectory}/{fileNameExisting}";
@@ -59,11 +62,7 @@ public class DownloadPendingDatasetsJob : IJob
 
                 await _datasetManager.UpdateDatasetStatus(pendingDataset.DatasetId, DatasetStatus.Downloading);
 
-                var baseUri = _config.GetBaseUri();
-
-                await using (var stream =
-                             await httpClient.GetStreamAsync(resource.GetDownloadUrl(baseUri,
-                                 await resource.GetColumns(baseUri))))
+                await using (var stream = await httpClient.GetStreamAsync(downloadUrl))
                 await using (var fileStream = File.Create(filePathDownload))
                 {
                     await stream.CopyToAsync(fileStream);
@@ -97,7 +96,7 @@ public class DownloadPendingDatasetsJob : IJob
             }
             catch (Exception ex)
             {
-                _logger.LogInformation($"Error downloading dataset {resource.ResourceId}: {ex.Message}");
+                _logger.LogInformation($"Error downloading dataset {resource.ResourceId} ({downloadUrl}): {ex.Message}");
                 await _datasetManager.UpdateDatasetStatus(pendingDataset.DatasetId, DatasetStatus.Failed);
             }
         }

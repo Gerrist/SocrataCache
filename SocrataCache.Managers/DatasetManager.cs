@@ -18,7 +18,7 @@ public class DatasetManager
             dataset.ReferenceDate == referenceDate && dataset.ResourceId == resourceId) != null;
     }
 
-    public async Task<string> RegisterFreshDataset(DateTime referenceDate, string resourceId)
+    public async Task<string> RegisterFreshDataset(DateTime referenceDate, string resourceId, string type)
     {
         var freshDataset = new DatasetModel
         {
@@ -28,6 +28,7 @@ public class DatasetManager
             Status = DatasetStatus.Pending,
             CreatedAt = DateTime.Now,
             UpdatedAt = DateTime.Now,
+            Type = type,
         };
 
         await _managerContext.AddAsync(freshDataset);

@@ -45,7 +45,7 @@ public class FreshDatasetLookupJob : IJob
 
             _logger.LogInformation($"Marked {obsoleteDatasets.Length} dataset(s) as obsolete.");
 
-            await _datasetManager.RegisterFreshDataset(lastUpdated, resource.ResourceId);
+            await _datasetManager.RegisterFreshDataset(lastUpdated, resource.ResourceId, resource.Type);
             _logger.LogInformation("Registered dataset as pending.");
         }
     }

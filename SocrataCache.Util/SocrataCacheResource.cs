@@ -10,10 +10,10 @@ internal class CheckResponseDto
 public class SocrataCacheResource
 {
     public string ResourceId { get; set; } = string.Empty;
-    public string ResourceType { get; set; } = "csv";
     public string SocrataId { get; set; } = string.Empty;
     public string[]? ExcludedColumns { get; set; } = [];
-
+    public string Type { get; set; } = "csv";
+    
     public string GetUpdatedAtUrl(string baseUri)
     {
         return
@@ -27,7 +27,7 @@ public class SocrataCacheResource
 
     public string GetDownloadUrl(string baseUri, string[] columns)
     {
-        return $"{baseUri}/resource/{SocrataId}.csv?$limit=100000000&$select={string.Join(",", columns)}";
+        return $"{baseUri}/resource/{SocrataId}.{Type}?$limit=100000000&$select={string.Join(",", columns)}";
     }
 
     public async Task<DateTime> GetLastUpdated(string baseUri)
