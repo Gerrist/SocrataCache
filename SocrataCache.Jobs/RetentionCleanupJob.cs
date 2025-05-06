@@ -37,30 +37,69 @@ public class RetentionCleanupJob : IJob
     public async Task<int> AgeThresholdCleanup()
     {
         var retentionAgeDays = _config.GetRetentionDays();
-
         _logger.LogInformation("Cleaning up files older than {Day} day{DayPlural}", retentionAgeDays,
             retentionAgeDays == 1 ? "" : "s");
 
-        var knownDatasets = await _datasetManager.GetDatasets();
+        var allKnownDatasets = await _datasetManager.GetDatasets();
 
-        var overThresholdDatasets = knownDatasets
+        var deletableCandidatesByAge = allKnownDatasets
             .Where(dataset =>
                 ShouldFlagForDeletion(retentionAgeDays, dataset.CreatedAt) &&
-                dataset.Status == DatasetStatus.Downloaded);
+                dataset.Status == DatasetStatus.Downloaded)
+            .ToList();
 
-        var overThresholdDatasetsCount = overThresholdDatasets.Count();
-
-        _logger.LogInformation("Found {Count} dataset{CountPlural} older than {RetentionDays} day{DayPlural}",
-            overThresholdDatasetsCount, overThresholdDatasetsCount == 1 ? "" : "s", retentionAgeDays,
+        _logger.LogInformation("Found {Count} candidate dataset{CountPlural} older than {RetentionDays} day{DayPlural}",
+            deletableCandidatesByAge.Count, deletableCandidatesByAge.Count == 1 ? "" : "s", retentionAgeDays,
             retentionAgeDays == 1 ? "" : "s");
 
+        var datasetsActuallyDeleted = new List<DatasetModel>();
         var datasetsDirectory = Env.DownloadsRootPath.Value;
-        var deletedFiles = 0;
+        var deletedFilesCount = 0;
 
-        foreach (var dataset in overThresholdDatasets)
+        var candidatesByResource = deletableCandidatesByAge.GroupBy(d => d.ResourceId);
+
+        foreach (var group in candidatesByResource)
+        {
+            var resourceId = group.Key;
+            var resourceConfig = _config.GetResources().FirstOrDefault(r => r.ResourceId == resourceId);
+            // Order by CreatedAt to delete oldest first if we are only deleting some
+            var candidatesForThisResource = group.OrderBy(d => d.CreatedAt).ToList(); 
+
+            List<DatasetModel> datasetsToConsiderDeletingForThisResource;
+
+            if (resourceConfig?.RetainLastFile == true)
+            {
+                var totalDownloadedForThisResource = allKnownDatasets
+                    .Count(d => d.ResourceId == resourceId && d.Status == DatasetStatus.Downloaded);
+                
+                // Number of items from candidatesForThisResource we can delete
+                // We want to leave at least 1, so we can delete (totalDownloadedForThisResource - 1)
+                // This must be at least 0, and no more than the number of candidates we have.
+                var numToDelete = Math.Min(candidatesForThisResource.Count, Math.Max(0, totalDownloadedForThisResource - 1));
+                
+                datasetsToConsiderDeletingForThisResource = candidatesForThisResource.Take(numToDelete).ToList();
+
+                if (numToDelete < candidatesForThisResource.Count)
+                {
+                    _logger.LogDebug(
+                        "For resource {ResourceId} (retainLastFile=true), {TotalDownloaded} downloaded, {Candidates} candidates. Will delete {NumToDelete} oldest, keeping {NumKept}.",
+                        resourceId, totalDownloadedForThisResource, candidatesForThisResource.Count, numToDelete, totalDownloadedForThisResource - numToDelete);
+                }
+            }
+            else
+            {
+                // Not retaining last file, all candidates for this resource are up for deletion
+                datasetsToConsiderDeletingForThisResource = candidatesForThisResource;
+            }
+            datasetsActuallyDeleted.AddRange(datasetsToConsiderDeletingForThisResource);
+        }
+        
+        _logger.LogInformation("After retainLastFile logic, {Count} dataset{Plural} selected for age-based deletion.", 
+            datasetsActuallyDeleted.Count, datasetsActuallyDeleted.Count == 1 ? "" : "s");
+
+        foreach (var dataset in datasetsActuallyDeleted)
         {
             var daysOld = (DateTime.Now - dataset.CreatedAt).TotalDays;
-
             _logger.LogDebug(
                 "Deleting dataset {ResouceID}-{DatasetId} (CreatedAt is {CreatedAt} = {DaysDiff} days old)",
                 dataset.ResourceId, dataset.DatasetId, dataset.CreatedAt, daysOld);
@@ -74,19 +113,19 @@ public class RetentionCleanupJob : IJob
             if (File.Exists(filePathDownload))
             {
                 File.Delete(filePathDownload);
-                deletedFiles++;
+                deletedFilesCount++;
             }
 
             if (File.Exists(filePathDownloadCompressed))
             {
                 File.Delete(filePathDownloadCompressed);
-                deletedFiles++;
+                deletedFilesCount++;
             }
 
             await _datasetManager.UpdateDatasetStatus(dataset.DatasetId, DatasetStatus.Deleted);
         }
 
-        return deletedFiles;
+        return deletedFilesCount;
     }
 
     public async Task<int> SizeThresholdCleanup()
@@ -114,25 +153,49 @@ public class RetentionCleanupJob : IJob
             return deletedFilesCount;
         }
 
-        var knownDatasets = await _datasetManager.GetDatasets();
+        var allKnownDatasets = await _datasetManager.GetDatasets(); // Fetched once for consistent view
+        var datasetsProcessedForDeletionThisRun = new HashSet<string>(); // Track IDs of datasets deleted in this run
 
-        var downloadedDatasets = knownDatasets
-            .Where(dataset => dataset.Status == DatasetStatus.Downloaded);
+        // Iterate over downloaded datasets, ordered by creation date (oldest first)
+        var downloadedForIteration = allKnownDatasets
+            .Where(dataset => dataset.Status == DatasetStatus.Downloaded)
+            .OrderBy(d => d.CreatedAt)
+            .ToList();
 
-        foreach (var dataset in downloadedDatasets)
+        foreach (var dataset in downloadedForIteration)
         {
-            _logger.LogDebug("Possibly dataset {Dataset}", dataset);
-
             if (overThresholdSize <= 0)
             {
-                _logger.LogInformation("Dataset volume not exceeding retention size threshold anymore: {Remaining}",
+                _logger.LogInformation("Dataset volume not exceeding retention size threshold anymore: {Remaining} GB to clear.",
                     overThresholdSize);
                 break;
             }
+            
+            var resource = _config.GetResources().FirstOrDefault(r => r.ResourceId == dataset.ResourceId);
+            if (resource?.RetainLastFile == true)
+            {
+                var initialDownloadedCountForResource = allKnownDatasets
+                    .Count(d => d.ResourceId == dataset.ResourceId && d.Status == DatasetStatus.Downloaded);
 
-            _logger.LogDebug("Deleting dataset because of overThresholdSize: {ThresholdSize}", overThresholdSize);
+                var alreadyDeletedThisRunForResource = allKnownDatasets
+                    .Count(d => d.ResourceId == dataset.ResourceId && datasetsProcessedForDeletionThisRun.Contains(d.DatasetId));
+                
+                var currentEffectiveDownloadedCount = initialDownloadedCountForResource - alreadyDeletedThisRunForResource;
+
+                if (currentEffectiveDownloadedCount <= 1)
+                {
+                    _logger.LogDebug(
+                        "Skipping size-based deletion of dataset {ResourceID}-{DatasetId} due to retainLastFile. Effective count for resource: {EffectiveCount}",
+                        dataset.ResourceId, dataset.DatasetId, currentEffectiveDownloadedCount);
+                    continue; 
+                }
+            }
+
+            _logger.LogDebug("Considering dataset {DatasetId} for size-based deletion. Current overThresholdSize: {ThresholdSize} GB", 
+                dataset.DatasetId, overThresholdSize);
 
             var combinedFileSizeMb = 0;
+            bool filesWereDeletedForThisDataset = false;
 
             var fileNameDownload = $"{dataset.ResourceId}-{dataset.DatasetId}.{dataset.Type}";
             var fileNameDownloadCompressed = $"{dataset.ResourceId}-{dataset.DatasetId}.{dataset.Type}.gz";
@@ -140,55 +203,42 @@ public class RetentionCleanupJob : IJob
             var filePathDownload = $"{datasetsDirectory}/{fileNameDownload}";
             var filePathDownloadCompressed = $"{datasetsDirectory}/{fileNameDownloadCompressed}";
 
-            _logger.LogDebug("Checking if normal file at '{Path}' exists'", filePathDownload);
-
             if (File.Exists(filePathDownload))
             {
-                _logger.LogDebug("Normal file at '{Path}' exists'", filePathDownload);
-
                 var fileInfo = new FileInfo(filePathDownload);
-
-                combinedFileSizeMb = +Convert.ToInt16(Math.Ceiling((double)fileInfo.Length / 1024 / 1024));
-                deletedFilesCount++;
-
+                var fileSizeMb = (double)fileInfo.Length / 1024 / 1024;
+                combinedFileSizeMb += Convert.ToInt32(Math.Ceiling(fileSizeMb));
+                
                 File.Delete(filePathDownload);
-
-                _logger.LogInformation("Deleted file {FileName}", fileNameDownload);
+                _logger.LogInformation("Deleted file {FileName} (size: {FileSizeMb}MB) for size threshold cleanup.", fileNameDownload, fileSizeMb.ToString("F2"));
+                filesWereDeletedForThisDataset = true;
             }
-            else
-            {
-                _logger.LogDebug("Normal file at '{Path}' does NOT exists'", filePathDownload);
-            }
-
-            _logger.LogDebug("Checking if compressed file at '{Path}' exists'", filePathDownloadCompressed);
 
             if (File.Exists(filePathDownloadCompressed))
             {
-                _logger.LogDebug("Compressed file at '{Path}' exists'", filePathDownloadCompressed);
-
                 var fileInfo = new FileInfo(filePathDownloadCompressed);
-
-                combinedFileSizeMb = +Convert.ToInt16(Math.Ceiling((double)fileInfo.Length / 1024 / 1024));
-                deletedFilesCount++;
-
-                File.Delete(filePathDownload);
-
-                _logger.LogInformation("Deleted file {FileName}", filePathDownloadCompressed);
+                var fileSizeMb = (double)fileInfo.Length / 1024 / 1024;
+                combinedFileSizeMb += Convert.ToInt32(Math.Ceiling(fileSizeMb));
+                
+                File.Delete(filePathDownloadCompressed); // Corrected from filePathDownload
+                 _logger.LogInformation("Deleted file {FileName} (size: {FileSizeMb}MB) for size threshold cleanup.", fileNameDownloadCompressed, fileSizeMb.ToString("F2"));
+                filesWereDeletedForThisDataset = true;
             }
-            else
+
+            if (filesWereDeletedForThisDataset)
             {
-                _logger.LogDebug("Compressed file at '{Path}' does NOT exists'", filePathDownload);
+                deletedFilesCount++; // Count datasets processed, not individual files
+                datasetsProcessedForDeletionThisRun.Add(dataset.DatasetId);
+                await _datasetManager.UpdateDatasetStatus(dataset.DatasetId, DatasetStatus.Deleted);
+                
+                deletedFilesSizeMb += combinedFileSizeMb;
+                overThresholdSize -= (double)combinedFileSizeMb / 1024; // Convert MB to GB for overThresholdSize
             }
-
-            await _datasetManager.UpdateDatasetStatus(dataset.DatasetId, DatasetStatus.Deleted);
-
-            deletedFilesSizeMb += combinedFileSizeMb;
-            overThresholdSize -= combinedFileSizeMb;
         }
 
-        _logger.LogInformation("Deleted {DeletedFilesMb} MB", deletedFilesSizeMb);
+        _logger.LogInformation("Deleted {DeletedFilesMb} MB across {DeletedFileCount} dataset(s) for size threshold.", deletedFilesSizeMb, datasetsProcessedForDeletionThisRun.Count);
 
-        return deletedFilesCount;
+        return datasetsProcessedForDeletionThisRun.Count;
     }
 
     private static long DirectorySize(string directoryPath)
