@@ -31,10 +31,19 @@ public class FreshDatasetLookupJob : IJob
                 $"Resource {resource.ResourceId} ({resource.SocrataId}) was last updated on {lastUpdated:yyyy-MM-dd HH:mm:ss}");
 
             var isDatasetKnown = await _datasetManager.IsFreshDatasetKnown(lastUpdated, resource.ResourceId);
+            
             if (isDatasetKnown)
             {
-                _logger.LogInformation($"Dataset {resource.ResourceId} is already known with date.");
-                continue;
+                var knownDataset = await _datasetManager.GetDatasetByStatus(DatasetStatus.Downloaded, resource.ResourceId);
+
+                if (resource.RetainLastFile && knownDataset?.Status == DatasetStatus.Deleted)
+                {
+                    await _datasetManager.RegisterFreshDataset(lastUpdated, resource.ResourceId, resource.Type);
+                    _logger.LogInformation("Dataset {ResourceID}-{DatasetId} is known but deleted. Retaining last file.", resource.ResourceId, knownDataset.DatasetId);
+                } else {
+                    _logger.LogInformation("Dataset {ResourceID} is already known with date.", resource.ResourceId);
+                    continue;
+                }
             }
 
             var obsoleteDatasets =
