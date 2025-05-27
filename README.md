@@ -22,6 +22,7 @@ You need to configure SocrataCache to make sure it automatically downloads your 
 - `baseURL`: The base url/endpoint of the Socrata service ([more about finding the base/endpoint url](https://dev.socrata.com/consumers/getting-started.html)).
 - `retentionSize`: The oldest downloads will be deleted to free up space once the total download directory size in Gigabytes exceeds this value
 - `retentionDays`: The oldest downloads will be deleted to free up space once the age of files is older than this defined value
+- `webhookUrl`: (Optional) URL to send POST notifications when dataset status changes. If not provided, no notifications will be sent. The webhook payload will include the dataset ID, resource ID, status, reference date, creation date, update date, and type.
 
 Note: Retention cleanup is done on job-basis every few minutes. Treat this job as base-effort, as it may occur that the total volume of files exceeds the threshold. I'm working on a better solution.
 
@@ -44,15 +45,16 @@ Within `resources`:
 
 ## Example configuration 
 
-This is an example configuration which defines the Socrata service base URL, three resources to download (one with custom column definition) and data retention settings.
+This is an example configuration which defines the Socrata service base URL, three resources to download (one with custom column definition), and data retention settings. The webhook URL is optional and can be omitted if you don't need status notifications.
 
 ### JSON Configuration
 
 ```json
 {
   "baseUrl": "https://opendata.rdw.nl",
-  "retentionSize": 10,
-  "retentionDays": 1,
+  "retentionSize": 160,
+  "retentionDays": 7,
+  "webhookUrl": "https://your-webhook-endpoint.com/notifications",
   "resources": [
     {
       "resourceId": "rdw_vehicle_base_registration",
@@ -96,6 +98,26 @@ This is an example configuration which defines the Socrata service base URL, thr
 }
 ```
 
+### Webhook Notifications
+
+If you configure a `webhookUrl`, SocrataCache will send a POST request to that URL whenever a dataset's status changes. The webhook is completely optional - if you don't need status notifications, simply omit the `webhookUrl` from your configuration.
+
+When a dataset's status changes, a POST request will be sent to the configured webhook URL with a JSON payload like this:
+
+```json
+{
+    "datasetId": "550e8400-e29b-41d4-a716-446655440000",
+    "resourceId": "rdw_json_vehicle_base_registration",
+    "status": "downloaded",
+    "referenceDate": "2024-03-15T10:30:00Z",
+    "createdAt": "2024-03-15T10:30:00Z",
+    "updatedAt": "2024-03-15T10:30:00Z",
+    "type": "json"
+}
+```
+
+The status field will be one of: pending, downloading, downloaded, obsolete, failed, or deleted.
+
 # Deploying SocrataCache
 
 I recommend running this service in a container. I've included a `compose.yaml` in this repository which functions as an example on how to quickly run SocrataCache. You can run this by using the following command: `docker compose up --build`.
@@ -103,4 +125,4 @@ I recommend running this service in a container. I've included a `compose.yaml` 
 # API
 
 ### `/api/datasets`
-This endpoint states all datasets and their statuses. 
+This endpoint states all datasets and their statuses.
