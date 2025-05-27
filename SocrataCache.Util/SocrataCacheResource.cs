@@ -13,6 +13,7 @@ public class SocrataCacheResource
     public string SocrataId { get; set; } = string.Empty;
     public string[]? ExcludedColumns { get; set; } = [];
     public string Type { get; set; } = "csv";
+    public bool RetainLastFile { get; set; } = false;
     
     public string GetUpdatedAtUrl(string baseUri)
     {

@@ -37,6 +37,7 @@ Within `resources`:
 - `socrataId` The Resource ID as defined in Socrata 
 - `excludedColumns` Put all columns you don't want to download in this string array
 - `type` The file type to download. Must be one of: csv, json, xml (default: csv)
+- `retainLastFile` If set to true, the retention policy will not delete the last remaining file for this resource, even if it exceeds the age or size thresholds (default: false)
 
 ## Example configuration 
 
@@ -54,6 +55,7 @@ This is an example configuration which defines the Socrata service base URL, thr
       "resourceId": "rdw_vehicle_base_registration",
       "socrataId": "m9d7-ebf2",
       "type": "json",
+      "retainLastFile": true,
       "excludedColumns": [
         "api_gekentekende_voertuigen_assen",
         "api_gekentekende_voertuigen_brandstof",
