@@ -12,6 +12,9 @@ public class SocrataCacheResource
     public string ResourceId { get; set; } = string.Empty;
     public string SocrataId { get; set; } = string.Empty;
     public string[]? ExcludedColumns { get; set; } = [];
+    public string[]? Include { get; set; } = [];
+    public string[]? RawInclude { get; set; } = [];
+    public Dictionary<string, string>? Query { get; set; } = [];
     public string Type { get; set; } = "csv";
     public bool RetainLastFile { get; set; } = false;
     
@@ -28,7 +31,24 @@ public class SocrataCacheResource
 
     public string GetDownloadUrl(string baseUri, string[] columns)
     {
-        return $"{baseUri}/resource/{SocrataId}.{Type}?$limit=100000000&$select={string.Join(",", columns)}";
+        var queryParams = new Dictionary<string, string>();
+        
+        queryParams.Add("$select", string.Join(",", columns));
+        
+        queryParams.Add("$limit", "100000000");
+        
+        // Add any custom query parameters
+        if (Query != null)
+        {
+            foreach (var param in Query)
+            {
+                queryParams.Add(param.Key, param.Value);
+            }
+        }
+
+        var queryString = string.Join("&", queryParams.Select(kvp => $"{kvp.Key}={kvp.Value}"));
+        
+        return $"{baseUri}/resource/{SocrataId}.{Type}?{queryString}";
     }
 
     public async Task<DateTime> GetLastUpdated(string baseUri)
@@ -53,11 +73,25 @@ public class SocrataCacheResource
     public async Task<string[]> GetColumns(string baseUri)
     {
         var columnsResponse = await HttpHelper.GetText(GetColumnsUrl(baseUri));
+        var columns = columnsResponse.Split(",").Select(c => c.Replace("\"", "")).ToList();
 
-        var columns = columnsResponse.Split(",").Select(c => c.Replace("\"", ""));
+        // If Include is specified, only return those columns
+        if (Include != null && Include.Length > 0)
+        {
+            columns = columns.Where(column => Include.Contains(column)).ToList();
+        }
+        // Otherwise, exclude the ExcludedColumns
+        else if (ExcludedColumns != null && ExcludedColumns.Length > 0)
+        {
+            columns = columns.Where(column => !ExcludedColumns.Contains(column)).ToList();
+        }
 
-        var columnsWithoutExcluded = columns.Where(column => !(ExcludedColumns ?? []).Contains(column));
+        // Add any RawInclude columns
+        if (RawInclude != null && RawInclude.Length > 0)
+        {
+            columns.AddRange(RawInclude);
+        }
 
-        return columnsWithoutExcluded.ToArray();
+        return columns.ToArray();
     }
 }
