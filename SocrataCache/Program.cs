@@ -36,32 +36,19 @@ public class Program
             q.AddTrigger(opts => opts
                 .ForJob(freshDatasetLookupJobKey)
                 .WithIdentity("FreshDatasetLookupRecurringTrigger")
-                .WithSimpleSchedule(x => x.WithIntervalInMinutes(5).RepeatForever()));
+                .WithSimpleSchedule(x => x.WithIntervalInMinutes(5).RepeatForever())
+                .StartAt(DateTime.Now.AddSeconds(5)));
 
             q.AddTrigger(opts => opts
                 .ForJob(downloadPendingDatasetsJobKey)
                 .WithIdentity("DownloadPendingDatasetsRecurringTrigger")
-                .WithSimpleSchedule(x => x.WithIntervalInMinutes(5).RepeatForever()));
+                .WithSimpleSchedule(x => x.WithIntervalInMinutes(5).RepeatForever())
+                .StartAt(DateTime.Now.AddSeconds(20)));
 
             q.AddTrigger(opts => opts
                 .ForJob(retentionCleanupJobKey)
                 .WithIdentity("RetentionCleanupJobRecurringTrigger")
                 .WithSimpleSchedule(x => x.WithIntervalInMinutes(1).RepeatForever()));
-
-            q.AddTrigger(opts => opts
-                .ForJob(freshDatasetLookupJobKey)
-                .WithIdentity("FreshDatasetLookupImmediateTrigger")
-                .StartNow());
-
-            q.AddTrigger(opts => opts
-                .ForJob(downloadPendingDatasetsJobKey)
-                .WithIdentity("DownloadPendingDatasetsImmediateTrigger")
-                .StartAt(DateTime.Now.AddSeconds(20)));
-
-            q.AddTrigger(opts => opts
-                .ForJob(retentionCleanupJobKey)
-                .WithIdentity("RetentionCleanupJobImmediateTrigger")
-                .StartAt(DateTime.Now.AddSeconds(60)));
         });
 
         builder.Services.AddQuartzServer(q => { q.WaitForJobsToComplete = true; });

@@ -1,4 +1,5 @@
 using Newtonsoft.Json;
+using System.Text.RegularExpressions;
 
 namespace SocrataCache.Util;
 
@@ -29,26 +30,34 @@ public class SocrataCacheResource
         return $"{baseUri}/resource/{SocrataId}.csv?$select=*&$limit=0";
     }
 
+    public static string InjectDatePlaceholders(string input)
+    {
+        var regex = new Regex(@"\{\{DAY_YYYY_MM_DD\((-?\d+)\)\}\}");
+        var result = regex.Replace(input, match =>
+        {
+            int daysOffset = int.Parse(match.Groups[1].Value);
+            var date = DateTime.UtcNow.Date.AddDays(daysOffset);
+            return date.ToString("yyyy-MM-dd");
+        });
+        return result;
+    }
+
     public string GetDownloadUrl(string baseUri, string[] columns)
     {
         var queryParams = new Dictionary<string, string>();
-        
         queryParams.Add("$select", string.Join(",", columns));
-        
         queryParams.Add("$limit", "100000000");
-        
-        // Add any custom query parameters
         if (Query != null)
         {
             foreach (var param in Query)
             {
-                queryParams.Add(param.Key, param.Value);
+                var replaced = InjectDatePlaceholders(param.Value);
+                queryParams.Add(param.Key, replaced);
             }
         }
-
         var queryString = string.Join("&", queryParams.Select(kvp => $"{kvp.Key}={kvp.Value}"));
-        
-        return $"{baseUri}/resource/{SocrataId}.{Type}?{queryString}";
+        var url = $"{baseUri}/resource/{SocrataId}.{Type}?{queryString}";
+        return url;
     }
 
     public async Task<DateTime> GetLastUpdated(string baseUri)

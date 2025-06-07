@@ -10,15 +10,15 @@
       SOCRATACACHE_DOWNLOADS_ROOT_PATH: /app/scdatasets
     volumes:
       - type: bind
-        source: /root/code/SocrataCache/sc-config.json
+        source: ./sc-config.json
         target: /app/sc-config.json
-      - /mnt/volume-nbg1-1/socratacachedatasets:/app/scdatasets
+      - ./scdatasets:/app/scdatasets
     ports:
       - 8080:8080
   gossa:
     image: pldubouilh/gossa
     volumes:
-      - /mnt/volume-nbg1-1/socratacachedatasets:/shared
+      - ./scdatasets:/shared
     ports:
       - 8081:8001
     environment:

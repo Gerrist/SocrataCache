@@ -42,6 +42,34 @@ Within `resources`:
 - `type` The file type to download. Must be one of: csv, json, xml (default: csv)
 - `retainLastFile` If set to true, the retention policy will not delete the last remaining file for this resource, even if it exceeds the age or size thresholds (default: false)
 
+#### Date Injection in Query Parameters
+
+You can inject dynamic dates into your query parameters using the following placeholder format:
+
+```
+{{DAY_YYYY_MM_DD(-N)}}
+```
+
+Where `N` is the number of days to offset from today (UTC). For example, if today is 2025-10-10:
+
+- `{{DAY_YYYY_MM_DD(-2)}}` will be replaced with `2025-10-08`
+- `{{DAY_YYYY_MM_DD(0)}}` will be replaced with `2025-10-10`
+- `{{DAY_YYYY_MM_DD(5)}}` will be replaced with `2025-10-15`
+
+**Example usage in a query parameter:**
+
+```json
+"query": {
+  "$where": ":updated_at > '{{DAY_YYYY_MM_DD(-2)}}'"
+}
+```
+
+This will result in a query like:
+
+```
+$where=:updated_at > '2025-10-08'
+```
+
 ## Example configuration 
 
 This is an example configuration which defines the Socrata service base URL, three resources to download (one with custom column definition) and data retention settings.
