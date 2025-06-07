@@ -36,6 +36,9 @@ Within `resources`:
 - `resourceId` An user defined ID for identifying a resource
 - `socrataId` The Resource ID as defined in Socrata 
 - `excludedColumns` Put all columns you don't want to download in this string array
+- `include` Only download the columns defined in this array (opposite of excludedColumns)
+- `rawInclude` Same as include, but without checking if the column exists in the dataset
+- `query` Map of query parameters to pass to the download URL (e.g. $where, $limit)
 - `type` The file type to download. Must be one of: csv, json, xml (default: csv)
 - `retainLastFile` If set to true, the retention policy will not delete the last remaining file for this resource, even if it exceeds the age or size thresholds (default: false)
 
@@ -56,28 +59,38 @@ This is an example configuration which defines the Socrata service base URL, thr
       "socrataId": "m9d7-ebf2",
       "type": "json",
       "retainLastFile": true,
-      "excludedColumns": [
-        "api_gekentekende_voertuigen_assen",
-        "api_gekentekende_voertuigen_brandstof",
-        "api_gekentekende_voertuigen_carrosserie_specifiek",
-        "api_gekentekende_voertuigen_voertuigklasse",
-        "registratie_datum_goedkeuring_afschrijvingsmoment_bpm",
-        "vervaldatum_apk",
-        "datum_tenaamstelling",
-        "datum_eerste_toelating",
-        "datum_eerste_tenaamstelling_in_nederland",
-        "vervaldatum_tachograaf"
-      ]
+      "include": [
+        "merk",
+        "handelsbenaming",
+        "aantal_cilinders",
+        "cilinderinhoud",
+        "aantal_deuren",
+        "aantal_wielen",
+        "massa_ledig_voertuig",
+        "massa_rijklaar"
+      ],
+      "query": {
+        "$where": "merk = 'VOLKSWAGEN'",
+        "$limit": "1000"
+      }
     },
     {
       "resourceId": "rdw_type_approval_base",
       "socrataId": "byxc-wwua",
-      "type": "csv"
+      "type": "csv",
+      "excludedColumns": [
+        "unused_column1",
+        "unused_column2"
+      ]
     },
     {
       "resourceId": "rdw_type_approval_brand",
       "socrataId": "kyri-nuah",
-      "type": "xml"
+      "type": "xml",
+      "rawInclude": [
+        "custom_column1",
+        "custom_column2"
+      ]
     }
   ]
 }
