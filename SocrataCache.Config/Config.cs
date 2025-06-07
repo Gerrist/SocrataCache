@@ -66,6 +66,8 @@ public class Config
     
     public int GetRetentionDays() => _config?.RetentionDays ?? throw new NullReferenceException("No RetentionDays configured.");
     
+    public string? GetWebhookUrl() => _config?.WebhookUrl;
+    
 }
 
 public class SocrataCacheConfig
@@ -74,4 +76,5 @@ public class SocrataCacheConfig
     public List<SocrataCacheResource> Resources { get; set; } = [];
     public int RetentionSize { get; set; } = 50;
     public int RetentionDays { get; set; } = 14;
+    public string? WebhookUrl { get; set; } = null;
 }

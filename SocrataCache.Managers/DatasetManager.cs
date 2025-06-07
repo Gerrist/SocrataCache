@@ -1,15 +1,18 @@
 using Microsoft.EntityFrameworkCore;
 using SocrataCache.Managers.Models;
+using SocrataCache.Util;
 
 namespace SocrataCache.Managers;
 
 public class DatasetManager
 {
     private readonly ManagerContext _managerContext;
+    private readonly WebhookService _webhookService;
 
-    public DatasetManager(ManagerContext managerContext)
+    public DatasetManager(ManagerContext managerContext, WebhookService webhookService)
     {
         _managerContext = managerContext;
+        _webhookService = webhookService;
     }
 
     public async Task<bool> IsFreshDatasetKnown(DateTime referenceDate, string resourceId)
@@ -50,6 +53,15 @@ public class DatasetManager
         dataset.UpdatedAt = DateTime.Now;
 
         await _managerContext.SaveChangesAsync();
+
+        // Send webhook notification
+        await _webhookService.SendWebhookNotification(new DatasetWebhookUpdateDto
+        {
+            DatasetId = dataset.DatasetId,
+            ResourceId = dataset.ResourceId,
+            Status = dataset.Status.ToString().ToLower(),
+            UpdatedAt = dataset.UpdatedAt,
+        });
     }
 
     public async Task<DatasetModel[]> GetDatasetsByStatus(DatasetStatus status)

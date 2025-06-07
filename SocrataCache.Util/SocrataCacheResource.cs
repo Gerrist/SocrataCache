@@ -81,24 +81,21 @@ public class SocrataCacheResource
 
     public async Task<string[]> GetColumns(string baseUri)
     {
+        if (RawInclude != null && RawInclude.Length > 0)
+        {
+            return RawInclude.ToArray();
+        }
+
         var columnsResponse = await HttpHelper.GetText(GetColumnsUrl(baseUri));
         var columns = columnsResponse.Split(",").Select(c => c.Replace("\"", "")).ToList();
 
-        // If Include is specified, only return those columns
         if (Include != null && Include.Length > 0)
         {
             columns = columns.Where(column => Include.Contains(column)).ToList();
         }
-        // Otherwise, exclude the ExcludedColumns
         else if (ExcludedColumns != null && ExcludedColumns.Length > 0)
         {
             columns = columns.Where(column => !ExcludedColumns.Contains(column)).ToList();
-        }
-
-        // Add any RawInclude columns
-        if (RawInclude != null && RawInclude.Length > 0)
-        {
-            columns.AddRange(RawInclude);
         }
 
         return columns.ToArray();

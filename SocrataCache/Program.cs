@@ -4,6 +4,7 @@ using Quartz.AspNetCore;
 using SocrataCache.Config;
 using SocrataCache.Jobs;
 using SocrataCache.Managers;
+using SocrataCache.Util;
 
 namespace SocrataCache;
 
@@ -15,7 +16,13 @@ public class Program
 
         builder.Services.AddDbContext<ManagerContext>();
 
-        builder.Services.AddSingleton(new Config.Config(Env.ConfigFilePath.Value));
+        // Register config as a singleton
+        builder.Services.AddSingleton<Config.Config>(sp => new Config.Config(Env.ConfigFilePath.Value));
+        
+        // Register WebhookService as a singleton, getting config from DI
+        builder.Services.AddSingleton<WebhookService>(sp => 
+            new WebhookService(sp.GetRequiredService<Config.Config>().GetWebhookUrl()));
+            
         builder.Services.AddScoped<Managers.DatasetManager>();
 
         builder.Services.AddQuartz(q =>
